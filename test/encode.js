@@ -1,5 +1,6 @@
-const test = require("ava");
-const { readFile, readAudioData, deepEqual, deepCloseTo } = require("./_util");
+const fs = require("fs");
+const path = require("path");
+const assert = require("assert");
 const encoder = require("..");
 
 const testSpec = [
@@ -10,13 +11,43 @@ const testSpec = [
   { opts: { float:  true }, delta: 0.00, filename: "amen_pcm32f.wav" }
 ];
 
-test("encoding", async t => {
-  const audioData = await readAudioData("./fixtures/amen.dat");
+function readFile(filename) {
+  return fs.readFileSync(path.join(__dirname, "fixtures", filename));
+}
 
-  return Promise.all(testSpec.map(async spec => {
-    const actual = new Uint8Array(await encoder.encode(audioData, spec.opts));
-    const expected = new Uint8Array((await readFile(`./fixtures/${ spec.filename }`)).buffer);
+function readAudioData(filename) {
+  const buffer = readFile(filename).buffer;
 
-    t.ok(deepEqual(actual, expected));
-  }));
+  const uint32 = new Uint32Array(buffer, 4);
+  const float32 = new Float32Array(buffer, 16);
+
+  const numberOfChannels = uint32[0];
+  const length = uint32[1];
+  const sampleRate = uint32[2];
+  const channelData = new Array(numberOfChannels).fill().map((_, ch) => {
+    return float32.subarray(ch * length, (ch + 1) * length);
+  });
+
+  return {
+    numberOfChannels: numberOfChannels,
+    length: length,
+    sampleRate: sampleRate,
+    channelData: channelData
+  };
+}
+
+describe("encode(audioData, opts)", () => {
+  const audioData = readAudioData("amen.dat");
+
+  testSpec.forEach(({ opts, delta, filename }) => {
+    it(filename, () => {
+      const expected = new Uint8Array(readFile(filename));
+
+      return encoder.encode(audioData, opts).then((actual) => {
+        actual = new Uint8Array(actual);
+
+        assert.deepEqual(actual, expected);
+      });
+    });
+  });
 });
