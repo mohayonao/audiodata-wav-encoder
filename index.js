@@ -1,39 +1,43 @@
 "use strict";
 
-function encode(audioData, opts) {
+function encodeSync(audioData, opts) {
   opts = opts || {};
 
-  return new Promise(function(resolve, reject) {
-    audioData = toAudioData(audioData);
+  audioData = toAudioData(audioData);
 
-    if (audioData === null) {
-      return reject(new TypeError("Invalid AudioData"));
-    }
+  if (audioData === null) {
+    throw new TypeError("Invalid AudioData");
+  }
 
-    var floatingPoint = !!(opts.floatingPoint || opts.float);
-    var bitDepth = floatingPoint ? 32 : ((opts.bitDepth|0) || 16);
-    var bytes = bitDepth >> 3;
-    var length = audioData.length * audioData.numberOfChannels * bytes;
-    var dataView = new DataView(new Uint8Array(44 + length).buffer);
-    var writer = createWriter(dataView);
+  var floatingPoint = !!(opts.floatingPoint || opts.float);
+  var bitDepth = floatingPoint ? 32 : ((opts.bitDepth|0) || 16);
+  var bytes = bitDepth >> 3;
+  var length = audioData.length * audioData.numberOfChannels * bytes;
+  var dataView = new DataView(new Uint8Array(44 + length).buffer);
+  var writer = createWriter(dataView);
 
-    var format = {
-      formatId: floatingPoint ? 0x0003 : 0x0001,
-      floatingPoint: floatingPoint,
-      numberOfChannels: audioData.numberOfChannels,
-      sampleRate: audioData.sampleRate,
-      bitDepth: bitDepth
-    };
+  var format = {
+    formatId: floatingPoint ? 0x0003 : 0x0001,
+    floatingPoint: floatingPoint,
+    numberOfChannels: audioData.numberOfChannels,
+    sampleRate: audioData.sampleRate,
+    bitDepth: bitDepth
+  };
 
-    writeHeader(writer, format, dataView.buffer.byteLength - 8);
+  writeHeader(writer, format, dataView.buffer.byteLength - 8);
 
-    var err = writeData(writer, format, length, audioData);
+  var err = writeData(writer, format, length, audioData);
 
-    if (err instanceof Error) {
-      return reject(err);
-    }
+  if (err instanceof Error) {
+    throw err;
+  }
 
-    resolve(dataView.buffer);
+  return dataView.buffer;
+}
+
+function encode(audioData, opts) {
+  return new Promise(function(resolve) {
+    resolve(encodeSync(audioData, opts));
   });
 }
 
@@ -159,3 +163,4 @@ function createWriter(dataView) {
 }
 
 module.exports.encode = encode;
+module.exports.encode.sync = encodeSync;
