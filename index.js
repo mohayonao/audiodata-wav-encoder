@@ -126,19 +126,21 @@ function createWriter(dataView) {
     pcm8: function(value) {
       value = Math.max(-1, Math.min(value, +1));
       value = (value * 0.5 + 0.5) * 255;
-      dataView.setUint8(pos, value|0, true);
+      value = Math.round(value)|0;
+      dataView.setUint8(pos, value, true);
       pos += 1;
     },
     pcm16: function(value) {
       value = Math.max(-1, Math.min(value, +1));
       value = value < 0 ? value * 32768 : value * 32767;
-      dataView.setInt16(pos, value|0, true);
+      value = Math.round(value)|0;
+      dataView.setInt16(pos, value, true);
       pos += 2;
     },
     pcm24: function(value) {
       value = Math.max(-1, Math.min(value, +1));
       value = value < 0 ? 0x1000000 + value * 8388608 : value * 8388607;
-      value = value|0;
+      value = Math.round(value)|0;
 
       var x0 = (value >>  0) & 0xFF;
       var x1 = (value >>  8) & 0xFF;
@@ -152,7 +154,8 @@ function createWriter(dataView) {
     pcm32: function(value) {
       value = Math.max(-1, Math.min(value, +1));
       value = value < 0 ? value * 2147483648 : value * 2147483647;
-      dataView.setInt32(pos, value|0, true);
+      value = Math.round(value)|0;
+      dataView.setInt32(pos, value, true);
       pos += 4;
     },
     pcm32f: function(value) {
